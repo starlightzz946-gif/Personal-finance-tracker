@@ -59,6 +59,48 @@ class TestTransaction(unittest.TestCase):
                 description="Lunch",
             )
 
+    
+    def test_rejects_empty_description(self):
+        with self.assertRaises(ValueError):
+            Transaction(
+                date=date.today(),
+                type="expense",
+                amount=Decimal("10.00"),
+                category="Food",
+                description="",
+            )
+
+    def test_rejects_whitespace_description(self):
+        with self.assertRaises(ValueError):
+            Transaction(
+                date=date.today(),
+                type="expense",
+                amount=Decimal("10.00"),
+                category="Food",
+                description="   ",
+            )
+
+    def test_rejects_nan_amount(self):
+        with self.assertRaises(ValueError):
+            Transaction(
+                date=date.today(),
+                type="expense",
+                amount=Decimal("NaN"),
+                category="Food",
+                description="Lunch",
+            )
+
+    def test_rejects_infinite_amount(self):
+        with self.assertRaises(ValueError):
+            Transaction(
+                date=date.today(),
+                type="expense",
+                amount=Decimal("Infinity"),
+                category="Food",
+                description="Lunch",
+            )
+
+
 
 if __name__ == "__main__":
     unittest.main()
