@@ -27,9 +27,10 @@ def add_transaction(args):
         print(f"Error: {error}")
         return 1
 
-    transactions = load_transactions(DEFAULT_DATA_FILE)
+    data_file = getattr(args, "file", DEFAULT_DATA_FILE)
+    transactions = load_transactions(data_file)
     transactions.append(transaction)
-    save_transactions(transactions, DEFAULT_DATA_FILE)
+    save_transactions(transactions, data_file)
 
     print(f"Added {transaction.type}: {transaction.amount} ({transaction.category})")
     return 0
@@ -37,7 +38,8 @@ def add_transaction(args):
 
 def list_transactions(args):
     """Display saved transactions."""
-    transactions = load_transactions(DEFAULT_DATA_FILE)
+    data_file = getattr(args, "file", DEFAULT_DATA_FILE)
+    transactions = load_transactions(data_file)
 
     if not transactions:
         print("No transactions yet.")
@@ -55,7 +57,8 @@ def list_transactions(args):
 
 def show_summary(args):
     """Display totals for saved transactions."""
-    transactions = load_transactions(args.file)
+    data_file = getattr(args, "file", DEFAULT_DATA_FILE)
+    transactions = load_transactions(data_file)
     summary = calculate_summary(transactions)
 
     print(f"Total income:   ₹{summary['total_income']:.2f}")
@@ -74,6 +77,12 @@ def build_parser():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     add_parser = subparsers.add_parser("add", help="Add an income or expense")
+    add_parser.add_argument(
+        "--file",
+        type=Path,
+        default=DEFAULT_DATA_FILE,
+        help="Path to the transactions CSV file",
+    )
     add_parser.add_argument("--type", choices=["income", "expense"], required=True)
     add_parser.add_argument("--amount", required=True)
     add_parser.add_argument("--category", required=True)
@@ -81,8 +90,16 @@ def build_parser():
     add_parser.add_argument("--date", default=date.today().isoformat())
     add_parser.set_defaults(func=add_transaction)
 
+
     list_parser = subparsers.add_parser("list", help="List saved transactions")
+    list_parser.add_argument(
+        "--file",
+        type=Path,
+        default=DEFAULT_DATA_FILE,
+        help="Path to the transactions CSV file",
+    )
     list_parser.set_defaults(func=list_transactions)
+
 
     summary_parser = subparsers.add_parser(
         "summary",
