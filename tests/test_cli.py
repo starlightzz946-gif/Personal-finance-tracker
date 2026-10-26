@@ -44,6 +44,65 @@ class TestFinanceCLI(unittest.TestCase):
             saved = cli.load_transactions(data_file)
             self.assertEqual(saved, [transaction])
 
+
+    def test_add_transaction_uses_custom_file(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "custom_transactions.csv"
+
+            args = Namespace(
+                type="income",
+                amount="2500.00",
+                category="Freelance",
+                description="Website project",
+                date=date.today().isoformat(),
+                file=data_file,
+            )
+
+            with redirect_stdout(StringIO()):
+                result = cli.add_transaction(args)
+
+            self.assertEqual(result, 0)
+            self.assertTrue(data_file.exists())
+
+            saved = cli.load_transactions(data_file)
+            self.assertEqual(len(saved), 1)
+            self.assertEqual(saved[0].amount, Decimal("2500.00"))
+            self.assertEqual(saved[0].category, "Freelance")
+
+
+    def test_show_summary_uses_custom_file(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "custom_transactions.csv"
+
+            transactions = [
+                Transaction(
+                    date=date.today(),
+                    type="income",
+                    amount=Decimal("5000.00"),
+                    category="Allowance",
+                    description="Monthly allowance",
+                ),
+                Transaction(
+                    date=date.today(),
+                    type="expense",
+                    amount=Decimal("120.00"),
+                    category="Food",
+                    description="Lunch",
+                ),
+            ]
+
+            cli.save_transactions(transactions, data_file)
+            args = Namespace(file=data_file)
+
+            with redirect_stdout(StringIO()) as output:
+                result = cli.show_summary(args)
+
+            self.assertEqual(result, 0)
+            self.assertIn("5000.00", output.getvalue())
+            self.assertIn("120.00", output.getvalue())
+            self.assertIn("4880.00", output.getvalue())
+
+
     def test_show_summary_displays_totals(self):
         transactions = [
             Transaction(
@@ -74,6 +133,31 @@ class TestFinanceCLI(unittest.TestCase):
         self.assertIn("5000.00", output.getvalue())
         self.assertIn("120.00", output.getvalue())
         self.assertIn("4880.00", output.getvalue())
+
+
+    def test_list_transactions_uses_custom_file(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "custom_transactions.csv"
+
+            transaction = Transaction(
+                date=date.today(),
+                type="income",
+                amount=Decimal("2500.00"),
+                category="Freelance",
+                description="Website project",
+            )
+
+            cli.save_transactions([transaction], data_file)
+
+            args = Namespace(file=data_file)
+
+            with redirect_stdout(StringIO()) as output:
+                result = cli.list_transactions(args)
+
+            self.assertEqual(result, 0)
+            self.assertIn("2500.00", output.getvalue())
+            self.assertIn("Freelance", output.getvalue())
+            self.assertIn("Website project", output.getvalue())
 
 
 if __name__ == "__main__":
