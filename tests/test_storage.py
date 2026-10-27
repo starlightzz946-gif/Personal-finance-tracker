@@ -56,5 +56,59 @@ class TestTransactionStorage(unittest.TestCase):
         self.assertTrue(nested_path.exists())
 
 
+    def test_load_rejects_invalid_amount(self):
+        with self.csv_path.open(
+            "w", newline="", encoding="utf-8"
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerow(
+                ["date", "type", "amount", "category", "description"]
+            )
+            writer.writerow(
+                ["2026-10-23", "expense", "abc", "Food", "Lunch"]
+            )
+        with self.assertRaisesRegex(
+            ValueError, "Invalid transaction on CSV row 2"
+        ):
+            load_transactions(self.csv_path)
+
+
+    def test_load_rejects_invalid_date(self):
+        with self.csv_path.open(
+            "w", newline="", encoding="utf-8"
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerow(
+                ["date", "type", "amount", "category", "description"]
+            )
+            writer.writerow(
+                ["not-a-date", "expense", "120.00", "Food", "Lunch"]
+            )
+
+        with self.assertRaisesRegex(
+            ValueError, "Invalid transaction on CSV row 2"
+        ):
+            load_transactions(self.csv_path)
+
+
+    def test_load_rejects_missing_description(self):
+        with self.csv_path.open(
+            "w", newline="", encoding="utf-8"
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerow(
+                ["date", "type", "amount", "category", "description"]
+            )
+            writer.writerow(
+                ["2026-10-23", "expense", "120.00", "Food", ""]
+            )
+
+        with self.assertRaisesRegex(
+            ValueError, "Invalid transaction on CSV row 2"
+        ):
+            load_transactions(self.csv_path)
+
+
+
 if __name__ == "__main__":
     unittest.main()

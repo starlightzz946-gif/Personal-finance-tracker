@@ -3,6 +3,7 @@ import csv
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from decimal import Decimal, InvalidOperation
 
 from src.finance_tracker.models import Transaction
 
@@ -50,15 +51,20 @@ def load_transactions(file_path):
         if reader.fieldnames != CSV_FIELDS:
             raise ValueError("CSV file has an unexpected column structure.")
 
-        for row in reader:
-            transactions.append(
-                Transaction(
+        for row_number, row in enumerate(reader, start=2):
+            try:
+                transaction = Transaction(
                     date=date.fromisoformat(row["date"]),
                     type=row["type"],
                     amount=Decimal(row["amount"]),
                     category=row["category"],
                     description=row["description"],
                 )
-            )
+            except (ValueError, InvalidOperation, TypeError, KeyError) as error:
+                raise ValueError(
+                    f"Invalid transaction on CSV row {row_number}: {error}"
+                ) from error
+
+            transactions.append(transaction)
 
     return transactions
