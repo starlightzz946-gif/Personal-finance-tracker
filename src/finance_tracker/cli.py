@@ -12,6 +12,15 @@ from src.finance_tracker.summary import calculate_summary
 DEFAULT_DATA_FILE = Path.home() / ".personal-finance-tracker" / "transactions.csv"
 
 
+def load_transactions_safely(data_file):
+    """Load transactions and report expected file/data errors."""
+    try:
+        return load_transactions(data_file)
+    except (ValueError, OSError, UnicodeError) as error:
+        print(f"Error: {error}")
+        return None
+
+
 def add_transaction(args):
     """Create and save a new income or expense."""
     try:
@@ -27,9 +36,15 @@ def add_transaction(args):
         print(f"Error: {error}")
         return 1
 
+
     data_file = getattr(args, "file", DEFAULT_DATA_FILE)
-    transactions = load_transactions(data_file)
+    transactions = load_transactions_safely(data_file)
+
+    if transactions is None:
+        return 1
+
     transactions.append(transaction)
+
     save_transactions(transactions, data_file)
 
     print(f"Added {transaction.type}: {transaction.amount} ({transaction.category})")
@@ -38,8 +53,13 @@ def add_transaction(args):
 
 def list_transactions(args):
     """Display saved transactions."""
+
     data_file = getattr(args, "file", DEFAULT_DATA_FILE)
-    transactions = load_transactions(data_file)
+    transactions = load_transactions_safely(data_file)
+
+    if transactions is None:
+        return 1
+
 
     if not transactions:
         print("No transactions yet.")
@@ -57,8 +77,13 @@ def list_transactions(args):
 
 def show_summary(args):
     """Display totals for saved transactions."""
+
     data_file = getattr(args, "file", DEFAULT_DATA_FILE)
-    transactions = load_transactions(data_file)
+    transactions = load_transactions_safely(data_file)
+
+    if transactions is None:
+        return 1
+
     summary = calculate_summary(transactions)
 
     print(f"Total income:   ₹{summary['total_income']:.2f}")

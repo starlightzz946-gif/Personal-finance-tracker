@@ -160,5 +160,76 @@ class TestFinanceCLI(unittest.TestCase):
             self.assertIn("Website project", output.getvalue())
 
 
+    def test_list_reports_invalid_csv_without_traceback(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "invalid.csv"
+            data_file.write_text(
+                "date,type,amount,category,description\n"
+                "2026-10-23,expense,abc,Food,Lunch\n",
+                encoding="utf-8",
+            )
+
+            args = Namespace(file=data_file)
+
+            with redirect_stdout(StringIO()) as output:
+                result = cli.list_transactions(args)
+
+            self.assertEqual(result, 1)
+            self.assertIn("Error:", output.getvalue())
+            self.assertIn("CSV row 2", output.getvalue())
+            self.assertNotIn("Traceback", output.getvalue())
+
+
+    def test_summary_reports_invalid_csv_without_traceback(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "invalid.csv"
+            data_file.write_text(
+                "date,type,amount,category,description\n"
+                "2026-10-23,expense,abc,Food,Lunch\n",
+                encoding="utf-8",
+            )
+
+            args = Namespace(file=data_file)
+
+            with redirect_stdout(StringIO()) as output:
+                result = cli.show_summary(args)
+
+            self.assertEqual(result, 1)
+            self.assertIn("Error:", output.getvalue())
+            self.assertIn("CSV row 2", output.getvalue())
+            self.assertNotIn("Traceback", output.getvalue())
+
+
+    def test_add_reports_invalid_csv_without_traceback(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "invalid.csv"
+            invalid_content = (
+                "date,type,amount,category,description\n"
+                "2026-10-23,expense,abc,Food,Lunch\n"
+            )
+            data_file.write_text(invalid_content, encoding="utf-8")
+
+            args = Namespace(
+                type="income",
+                amount="500.00",
+                category="Allowance",
+                description="Weekly allowance",
+                date=date.today().isoformat(),
+                file=data_file,
+            )
+
+            with redirect_stdout(StringIO()) as output:
+                result = cli.add_transaction(args)
+
+            self.assertEqual(result, 1)
+            self.assertIn("Error:", output.getvalue())
+            self.assertIn("CSV row 2", output.getvalue())
+            self.assertNotIn("Traceback", output.getvalue())
+            self.assertEqual(
+                data_file.read_text(encoding="utf-8"),
+                invalid_content,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
