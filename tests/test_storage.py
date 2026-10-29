@@ -5,6 +5,7 @@ import unittest
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 from src.finance_tracker.models import Transaction
 from src.finance_tracker.storage import save_transactions, load_transactions
@@ -107,6 +108,13 @@ class TestTransactionStorage(unittest.TestCase):
             ValueError, "Invalid transaction on CSV row 2"
         ):
             load_transactions(self.csv_path)
+
+
+    def test_save_propagates_file_access_error(self):
+        with patch("pathlib.Path.open", side_effect=PermissionError("Permission denied")):
+            with self.assertRaises(PermissionError):
+                save_transactions([], self.csv_path)
+
 
 
 

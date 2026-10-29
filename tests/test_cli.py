@@ -231,5 +231,32 @@ class TestFinanceCLI(unittest.TestCase):
             )
 
 
+    def test_add_reports_save_error_without_traceback(self):
+        with TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "transactions.csv"
+
+            args = Namespace(
+                type="income",
+                amount="500.00",
+                category="Allowance",
+                description="Weekly allowance",
+                date=date.today().isoformat(),
+                file=data_file,
+            )
+
+            with (
+                patch.object(
+                    cli, "save_transactions",
+                    side_effect=PermissionError("Permission denied"),
+                ),
+                redirect_stdout(StringIO()) as output,
+            ):
+                result = cli.add_transaction(args)
+
+            self.assertEqual(result, 1)
+            self.assertIn("Error:", output.getvalue())
+            self.assertNotIn("Traceback", output.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

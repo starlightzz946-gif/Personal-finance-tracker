@@ -45,9 +45,14 @@ def add_transaction(args):
 
     transactions.append(transaction)
 
-    save_transactions(transactions, data_file)
+    try:
+        save_transactions(transactions, data_file)
+    except OSError as error:
+        print(f"Error: Could not save transactions: {error}")
+        return 1
 
     print(f"Added {transaction.type}: {transaction.amount} ({transaction.category})")
+
     return 0
 
 
