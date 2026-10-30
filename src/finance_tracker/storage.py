@@ -1,9 +1,8 @@
 
 import csv
 from datetime import date
-from decimal import Decimal
-from pathlib import Path
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from src.finance_tracker.models import Transaction
 
