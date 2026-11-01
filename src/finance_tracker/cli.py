@@ -6,7 +6,10 @@ from pathlib import Path
 
 from src.finance_tracker.models import Transaction
 from src.finance_tracker.storage import load_transactions, save_transactions
-from src.finance_tracker.summary import calculate_summary
+from src.finance_tracker.summary import (
+    calculate_summary,
+    calculate_monthly_summary,
+)
 
 
 DEFAULT_DATA_FILE = Path.home() / ".personal-finance-tracker" / "transactions.csv"
@@ -98,6 +101,40 @@ def show_summary(args):
     return 0
 
 
+def show_monthly_report(args):
+    """Display financial totals for a selected month."""
+
+    data_file = getattr(args, "file", DEFAULT_DATA_FILE)
+    transactions = load_transactions_safely(data_file)
+
+    if transactions is None:
+        return 1
+
+    try:
+        selected_month = date.fromisoformat(f"{args.month}-01")
+    except ValueError:
+        print("Error: Month must use YYYY-MM format, e.g. 2026-10.")
+        return 1
+
+    year = selected_month.year
+    month = selected_month.month
+
+    summary = calculate_monthly_summary(
+        transactions,
+        year,
+        month,
+    )
+
+    month_name = date(year, month, 1).strftime("%B")
+
+    print(f"Monthly Report: {month_name} {year}")
+    print(f"Total income:   ₹{summary['total_income']:.2f}")
+    print(f"Total expenses: ₹{summary['total_expenses']:.2f}")
+    print(f"Balance:        ₹{summary['balance']:.2f}")
+    print(f"Savings rate:   {summary['savings_rate']:.2f}%")
+
+    return 0
+
 
 def build_parser():
     parser = argparse.ArgumentParser(
@@ -142,6 +179,25 @@ def build_parser():
         help="Path to the transactions CSV file",
     )
     summary_parser.set_defaults(func=show_summary)
+    monthly_parser = subparsers.add_parser(
+        "monthly",
+        help="Show a financial report for a specific month",
+    )
+
+    monthly_parser.add_argument(
+        "--month",
+        required=True,
+        help="Month to report in YYYY-MM format",
+    )
+
+    monthly_parser.add_argument(
+        "--file",
+        type=Path,
+        default=DEFAULT_DATA_FILE,
+        help="Path to the transactions CSV file",
+    )
+
+    monthly_parser.set_defaults(func=show_monthly_report)
 
     return parser
 

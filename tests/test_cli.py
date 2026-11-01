@@ -258,5 +258,39 @@ class TestFinanceCLI(unittest.TestCase):
             self.assertNotIn("Traceback", output.getvalue())
 
 
+    def test_monthly_report_displays_totals(self):
+        transactions = [
+            Transaction(
+                date=date(2026, 10, 5),
+                type="income",
+                amount=Decimal("25000.00"),
+                category="Salary",
+                description="October salary",
+            ),
+            Transaction(
+                date=date(2026, 10, 10),
+                type="expense",
+                amount=Decimal("5000.00"),
+                category="Rent",
+                description="October rent",
+            ),
+        ]
+
+        with (
+            patch.object(cli, "load_transactions", return_value=transactions),
+            redirect_stdout(StringIO()) as output,
+        ):
+            args = Namespace(
+                file=Path("unused.csv"),
+                month="2026-10",
+            )
+            result = cli.show_monthly_report(args)
+
+        self.assertEqual(result, 0)
+        self.assertIn("25000.00", output.getvalue())
+        self.assertIn("5000.00", output.getvalue())
+        self.assertIn("20000.00", output.getvalue())
+        self.assertIn("80.00%", output.getvalue())
+
 if __name__ == "__main__":
     unittest.main()
