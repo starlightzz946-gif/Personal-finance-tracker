@@ -7,6 +7,7 @@ from src.finance_tracker.models import Transaction
 from src.finance_tracker.summary import (
     calculate_summary,
     calculate_monthly_summary,
+    calculate_expenses_by_category,
 )
 
 
@@ -147,6 +148,59 @@ class TestCalculateSummary(unittest.TestCase):
         self.assertEqual(result["balance"], Decimal("-500.00"))
         self.assertEqual(result["savings_rate"], Decimal("0.00"))
 
+    def test_calculates_expenses_by_category(self):
+        transactions = [
+            Transaction(
+                date=date(2026, 10, 10),
+                type="expense",
+                amount=Decimal("500.00"),
+                category="Food",
+                description="Lunch",
+            ),
+            Transaction(
+                date=date(2026, 10, 11),
+                type="expense",
+                amount=Decimal("300.00"),
+                category="Food",
+                description="Dinner",
+            ),
+            Transaction(
+                date=date(2026, 10, 12),
+                type="expense",
+                amount=Decimal("200.00"),
+                category="Transport",
+                description="Bus",
+            ),
+            Transaction(
+                date=date(2026, 10, 13),
+                type="income",
+                amount=Decimal("5000.00"),
+                category="Allowance",
+                description="Monthly allowance",
+            ),
+        ]
+
+        result = calculate_expenses_by_category(transactions)
+
+        self.assertEqual(result["Food"], Decimal("800.00"))
+        self.assertEqual(result["Transport"], Decimal("200.00"))
+        self.assertNotIn("Allowance", result)
+
+
+    def test_no_expenses_returns_empty_dictionary(self):
+        transactions = [
+            Transaction(
+                date=date.today(),
+                type="income",
+                amount=Decimal("1000.00"),
+                category="Allowance",
+                description="Money received",
+            ),
+        ]
+
+        result = calculate_expenses_by_category(transactions)
+
+        self.assertEqual(result, {})
 
 if __name__ == "__main__":
     unittest.main()

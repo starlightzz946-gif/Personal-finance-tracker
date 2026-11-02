@@ -9,6 +9,7 @@ from src.finance_tracker.storage import load_transactions, save_transactions
 from src.finance_tracker.summary import (
     calculate_summary,
     calculate_monthly_summary,
+    calculate_expenses_by_category,
 )
 
 
@@ -135,6 +136,27 @@ def show_monthly_report(args):
 
     return 0
 
+def show_category_report(args):
+    """Display total expenses grouped by category."""
+
+    data_file = getattr(args, "file", DEFAULT_DATA_FILE)
+    transactions = load_transactions_safely(data_file)
+
+    if transactions is None:
+        return 1
+
+    expenses = calculate_expenses_by_category(transactions)
+
+    if not expenses:
+        print("No expenses recorded yet.")
+        return 0
+
+    print("Expenses by Category:")
+
+    for category, amount in sorted(expenses.items()):
+        print(f"{category}: ₹{amount:.2f}")
+
+    return 0
 
 def build_parser():
     parser = argparse.ArgumentParser(
@@ -198,6 +220,19 @@ def build_parser():
     )
 
     monthly_parser.set_defaults(func=show_monthly_report)
+    categories_parser = subparsers.add_parser(
+        "categories",
+        help="Show expenses grouped by category",
+    )
+
+    categories_parser.add_argument(
+        "--file",
+        type=Path,
+        default=DEFAULT_DATA_FILE,
+        help="Path to the transactions CSV file",
+    )
+
+    categories_parser.set_defaults(func=show_category_report)
 
     return parser
 

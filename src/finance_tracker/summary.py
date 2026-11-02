@@ -49,3 +49,19 @@ def calculate_monthly_summary(transactions, year, month):
         "balance": balance,
         "savings_rate": savings_rate.quantize(Decimal("0.01")),
     }
+
+def calculate_expenses_by_category(transactions):
+    """Calculate total expenses grouped by category."""
+
+    expenses_by_category = {}
+
+    for transaction in transactions:
+        if transaction.type == "expense":
+            category = transaction.category
+
+            if category not in expenses_by_category:
+                expenses_by_category[category] = Decimal("0.00")
+
+            expenses_by_category[category] += transaction.amount
+
+    return expenses_by_category
