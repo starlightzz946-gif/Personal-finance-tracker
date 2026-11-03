@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from src.finance_tracker.models import Transaction
+from src.finance_tracker.models import Transaction, Budget
 
 
 CSV_FIELDS = [
@@ -13,6 +13,12 @@ CSV_FIELDS = [
     "amount",
     "category",
     "description",
+]
+BUDGET_CSV_FIELDS = [
+    "year",
+    "month",
+    "category",
+    "amount",
 ]
 
 
@@ -67,3 +73,20 @@ def load_transactions(file_path):
             transactions.append(transaction)
 
     return transactions
+
+def save_budgets(budgets, file_path):
+    """Save budgets to a CSV file."""
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=BUDGET_CSV_FIELDS)
+        writer.writeheader()
+
+        for budget in budgets:
+            writer.writerow({
+                "year": budget.year,
+                "month": budget.month,
+                "category": budget.category,
+                "amount": str(budget.amount),
+            })

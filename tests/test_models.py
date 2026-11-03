@@ -3,7 +3,7 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
-from src.finance_tracker.models import Transaction
+from src.finance_tracker.models import Transaction, Budget
 
 
 class TestTransaction(unittest.TestCase):
@@ -100,7 +100,45 @@ class TestTransaction(unittest.TestCase):
                 description="Lunch",
             )
 
+class TestBudget(unittest.TestCase):
 
+    def test_valid_budget(self):
+        budget = Budget(
+            year=2026,
+            month=11,
+            category="Food",
+            amount=Decimal("3000.00"),
+        )
+
+        self.assertEqual(budget.amount, Decimal("3000.00"))
+
+    def test_rejects_invalid_year(self):
+        with self.assertRaises(ValueError):
+            Budget(0, 11, "Food", Decimal("3000.00"))
+
+    def test_rejects_invalid_month(self):
+        with self.assertRaises(ValueError):
+            Budget(2026, 13, "Food", Decimal("3000.00"))
+
+    def test_rejects_empty_category(self):
+        with self.assertRaises(ValueError):
+            Budget(2026, 11, " ", Decimal("3000.00"))
+
+    def test_rejects_zero_amount(self):
+        with self.assertRaises(ValueError):
+            Budget(2026, 11, "Food", Decimal("0"))
+
+    def test_rejects_negative_amount(self):
+        with self.assertRaises(ValueError):
+            Budget(2026, 11, "Food", Decimal("-100"))
+
+    def test_rejects_nan_amount(self):
+        with self.assertRaises(ValueError):
+            Budget(2026, 11, "Food", Decimal("NaN"))
+
+    def test_rejects_infinite_amount(self):
+        with self.assertRaises(ValueError):
+            Budget(2026, 11, "Food", Decimal("Infinity"))
 
 if __name__ == "__main__":
     unittest.main()
