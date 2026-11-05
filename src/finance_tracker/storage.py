@@ -90,3 +90,35 @@ def save_budgets(budgets, file_path):
                 "category": budget.category,
                 "amount": str(budget.amount),
             })
+
+def load_budgets(file_path):
+    """Load budgets from a CSV file."""
+    path = Path(file_path)
+
+    if not path.exists():
+        return []
+
+    budgets = []
+
+    with path.open("r", newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+
+        if reader.fieldnames != BUDGET_CSV_FIELDS:
+            raise ValueError("Budget CSV file has an unexpected column structure.")
+
+        for row_number, row in enumerate(reader, start=2):
+            try:
+                budget = Budget(
+                    year=int(row["year"]),
+                    month=int(row["month"]),
+                    category=row["category"],
+                    amount=Decimal(row["amount"]),
+                )
+            except (ValueError, InvalidOperation, TypeError, KeyError) as error:
+                raise ValueError(
+                    f"Invalid budget on CSV row {row_number}: {error}"
+                ) from error
+
+            budgets.append(budget)
+
+    return budgets

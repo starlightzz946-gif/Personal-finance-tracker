@@ -7,8 +7,13 @@ from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
 
-from src.finance_tracker.models import Transaction
-from src.finance_tracker.storage import save_transactions, load_transactions
+from src.finance_tracker.models import Transaction, Budget
+from src.finance_tracker.storage import (
+    save_transactions,
+    load_transactions,
+    save_budgets,
+    load_budgets,
+)
 
 
 class TestTransactionStorage(unittest.TestCase):
@@ -115,7 +120,75 @@ class TestTransactionStorage(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 save_transactions([], self.csv_path)
 
+class TestBudgetStorage(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.csv_path = Path(self.temp_dir.name) / "budgets.csv"
 
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_save_and_load_budget(self):
+        original = Budget(
+            year=2026,
+            month=11,
+            category="Food",
+            amount=Decimal("5000.00"),
+        )
+
+        save_budgets([original], self.csv_path)
+        loaded = load_budgets(self.csv_path)
+
+        self.assertEqual(loaded, [original])
+
+    def test_missing_file_returns_empty_list(self):
+        self.assertEqual(load_budgets(self.csv_path), [])
+
+    def test_empty_list_saves_csv_header(self):
+        save_budgets([], self.csv_path)
+
+        with self.csv_path.open(
+            "r", newline="", encoding="utf-8"
+        ) as file:
+            reader = csv.reader(file)
+
+            self.assertEqual(
+                next(reader),
+                ["year", "month", "category", "amount"],
+            )
+            self.assertEqual(list(reader), [])
+
+    def test_save_creates_parent_directories(self):
+        nested_path = self.csv_path.parent / "data" / "budgets.csv"
+
+        save_budgets([], nested_path)
+
+        self.assertTrue(nested_path.exists())
+
+    def test_load_rejects_invalid_amount(self):
+        with self.csv_path.open(
+            "w", newline="", encoding="utf-8"
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerow(["year", "month", "category", "amount"])
+            writer.writerow(["2026", "11", "Food", "abc"])
+
+        with self.assertRaisesRegex(
+            ValueError, "Invalid budget on CSV row 2"
+        ):
+            load_budgets(self.csv_path)
+
+    def test_load_rejects_invalid_csv_structure(self):
+        with self.csv_path.open(
+            "w", newline="", encoding="utf-8"
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerow(["year", "month", "category"])
+
+        with self.assertRaisesRegex(
+            ValueError, "unexpected column structure"
+        ):
+            load_budgets(self.csv_path)
 
 
 if __name__ == "__main__":
