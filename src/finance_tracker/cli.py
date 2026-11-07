@@ -129,6 +129,71 @@ def list_budgets(args):
 
     return 0
 
+def show_budget_status(args):
+    """Compare monthly budgets with actual expenses."""
+
+    budget_file = getattr(args, "budget_file", DEFAULT_BUDGET_FILE)
+    data_file = getattr(args, "file", DEFAULT_DATA_FILE)
+
+    try:
+        selected_month = date.fromisoformat(f"{args.month}-01")
+    except ValueError:
+        print("Error: Month must use YYYY-MM format, e.g. 2026-11.")
+        return 1
+
+    budgets = load_budgets_safely(budget_file)
+    transactions = load_transactions_safely(data_file)
+
+    if budgets is None or transactions is None:
+        return 1
+
+    monthly_budgets = [
+        budget for budget in budgets
+        if budget.year == selected_month.year
+        and budget.month == selected_month.month
+    ]
+
+    if not monthly_budgets:
+        print(f"No budgets found for {args.month}.")
+        return 0
+
+    expenses = {}
+
+    for transaction in transactions:
+        if (
+            transaction.type == "expense"
+            and transaction.date.year == selected_month.year
+            and transaction.date.month == selected_month.month
+        ):
+            category = transaction.category.lower()
+            expenses[category] = (
+                expenses.get(category, Decimal("0"))
+                + transaction.amount
+            )
+
+    print(f"Budget Status: {args.month}")
+
+    for budget in sorted(
+        monthly_budgets,
+        key=lambda item: item.category.lower(),
+    ):
+        spent = expenses.get(budget.category.lower(), Decimal("0"))
+        remaining = budget.amount - spent
+
+        print(f"\nCategory: {budget.category}")
+        print(f"Budget:    ₹{budget.amount:.2f}")
+        print(f"Spent:     ₹{spent:.2f}")
+        print(f"Remaining: ₹{remaining:.2f}")
+
+        if remaining < 0:
+            print(f"WARNING: Overspent by ₹{abs(remaining):.2f}")
+        elif remaining == 0:
+            print("Budget fully used.")
+        else:
+            print("Within budget.")
+
+    return 0
+
 def add_transaction(args):
     """Create and save a new income or expense."""
     try:
@@ -328,6 +393,32 @@ def build_parser():
     )
 
     list_budget_parser.set_defaults(func=list_budgets)
+    status_budget_parser = budget_subparsers.add_parser(
+        "status",
+        help="Show spending against monthly budgets",
+    )
+
+    status_budget_parser.add_argument(
+        "--month",
+        required=True,
+        help="Month to check in YYYY-MM format",
+    )
+
+    status_budget_parser.add_argument(
+        "--budget-file",
+        type=Path,
+        default=DEFAULT_BUDGET_FILE,
+        help="Path to the budgets CSV file",
+    )
+
+    status_budget_parser.add_argument(
+        "--file",
+        type=Path,
+        default=DEFAULT_DATA_FILE,
+        help="Path to the transactions CSV file",
+    )
+
+    status_budget_parser.set_defaults(func=show_budget_status)
     add_parser = subparsers.add_parser("add", help="Add an income or expense")
     add_parser.add_argument(
         "--file",
